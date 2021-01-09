@@ -366,6 +366,21 @@ where
 
     if log_enabled!(Debug) {
         debug!("request headers: {:?}", &request.headers());
+        debug!("headers:");
+        for h in request.headers().iter() {
+            let h1 = h.1
+                .iter()
+                .map(|v| match String::from_utf8(v.to_vec()) {
+                    Ok(v) => v,
+                    Err(e) => format!("error when parsing: {}", e),
+                })
+                .collect::<Vec<_>>().join(",");
+            debug!(
+                "{}: {}",
+                h.0,
+                h1,
+            );
+        }
     }
 
     // translate the headers map to a format Hyper likes
@@ -375,7 +390,7 @@ where
             Ok(name) => name,
             Err(err) => {
                 return Err(HttpDispatchError {
-                    message: format!("error parsing header name: {}", err),
+                    message: format!("error parsing header name for {}: {}", h.0, err),
                 });
             }
         };
@@ -383,8 +398,26 @@ where
             let header_value = match HeaderValue::from_bytes(v) {
                 Ok(value) => value,
                 Err(err) => {
+                    let h1 = h.1
+                        .iter()
+                        .map(|v| match String::from_utf8(v.to_vec()) {
+                            Ok(v) => v,
+                            Err(e) => format!("error when parsing: {}", e),
+                        })
+                        .collect::<Vec<_>>().join(",");
+                    debug!(
+                        "{}: {}",
+                        h.0,
+                        h1,
+                    );
+
                     return Err(HttpDispatchError {
-                        message: format!("error parsing header value: {}", err),
+                        message: format!(
+                            "error parsing header value for {} \"{:?}\": {}",
+                            h.0,
+                            h1,
+                            err,
+                        ),
                     });
                 }
             };
