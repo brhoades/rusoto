@@ -25,6 +25,9 @@ use hyper::{Body, Client as HyperClient, Request as HyperRequest, Response as Hy
 use lazy_static::lazy_static;
 use tokio::time;
 
+use log::Level::Debug;
+use log::*;
+
 use crate::signature::SignedRequest;
 use crate::stream::ByteStream;
 use crate::tls::HttpsConnector;
@@ -361,6 +364,10 @@ where
         }
     };
 
+    if log_enabled!(Debug) {
+        debug!("request headers: {:?}", &request.headers());
+    }
+
     // translate the headers map to a format Hyper likes
     let mut hyper_headers = HeaderMap::new();
     for h in request.headers().iter() {
@@ -400,12 +407,14 @@ where
         final_uri = final_uri + &format!("?{}", request.canonical_query_string());
     }
 
-    println!(
-        "Full request: \n method: {}\n final_uri: {}\nHeaders:\n",
-        hyper_method, final_uri
-    );
-    for (h, v) in hyper_headers.iter() {
-        println!("{}:{:?}", h.as_str(), v);
+    if log_enabled!(Debug) {
+        debug!(
+            "Full request: \n method: {}\n final_uri: {}\nHeaders:\n",
+            hyper_method, final_uri
+        );
+        for (h, v) in hyper_headers.iter() {
+            debug!("{}:{:?}", h.as_str(), v);
+        }
     }
 
     let http_request_builder = HyperRequest::builder().method(hyper_method).uri(final_uri);
